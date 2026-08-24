@@ -103,7 +103,7 @@ function Main() {
   );
 }
 
-function Content({ content, cards }: { content?: SiteContent; cards: CardRow[] }) {
+function Content({ content, cards }: { content: SiteContent | undefined; cards: CardRow[] }) {
   return (
     <main className="swipe-in mx-auto max-w-3xl px-6 pb-24 pt-16 sm:pt-24">
       <h1 className="text-balance text-4xl font-light leading-tight text-foreground sm:text-5xl">
