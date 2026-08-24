@@ -14,7 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cards: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          label: string | null
+          position: number
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          label?: string | null
+          position?: number
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          position?: number
+          value?: string
+        }
+        Relationships: []
+      }
+      promises: {
+        Row: {
+          created_at: string
+          id: string
+          locator_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          locator_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          locator_key?: string
+        }
+        Relationships: []
+      }
+      site_content: {
+        Row: {
+          footer_paragraph: string
+          footer_tagline: string
+          id: number
+          main_heading: string
+          updated_at: string
+        }
+        Insert: {
+          footer_paragraph?: string
+          footer_tagline?: string
+          id?: number
+          main_heading?: string
+          updated_at?: string
+        }
+        Update: {
+          footer_paragraph?: string
+          footer_tagline?: string
+          id?: number
+          main_heading?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
