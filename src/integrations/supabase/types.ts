@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          created_at: string
+          detail: string | null
+          event: string
+          id: string
+          locator_key: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          event: string
+          id?: string
+          locator_key?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          event?: string
+          id?: string
+          locator_key?: string | null
+        }
+        Relationships: []
+      }
       cards: {
         Row: {
           created_at: string
@@ -53,6 +77,27 @@ export type Database = {
           locator_key: string
         }
         Update: {
+          created_at?: string
+          id?: string
+          locator_key?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          locator_key: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          locator_key: string
+        }
+        Update: {
+          body?: string
           created_at?: string
           id?: string
           locator_key?: string

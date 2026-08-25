@@ -4,7 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { checkPromise, makePromise, type CardRow, type SiteContent } from "@/lib/garden.functions";
+import {
+  askQuestion,
+  checkPromise,
+  logActivity,
+  makePromise,
+  type CardRow,
+  type SiteContent,
+} from "@/lib/garden.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -61,10 +68,16 @@ function Main() {
   const queryClient = useQueryClient();
   const check = useServerFn(checkPromise);
   const promise = useServerFn(makePromise);
+  const log = useServerFn(logActivity);
 
   useEffect(() => {
     setLocator(readLocator());
   }, []);
+
+  useEffect(() => {
+    if (!locator) return;
+    void log({ data: { locator, event: "page_open" } }).catch(() => {});
+  }, [locator, log]);
 
   const promiseState = useQuery({
     queryKey: ["promise", locator],
@@ -86,7 +99,11 @@ function Main() {
       </header>
 
       {promised ? (
-        <Content content={site.data?.content} cards={site.data?.cards ?? []} />
+        <Content
+          content={site.data?.content}
+          cards={site.data?.cards ?? []}
+          locator={locator}
+        />
       ) : (
         <div className="min-h-[60vh]" />
       )}
@@ -103,7 +120,102 @@ function Main() {
   );
 }
 
-function Content({ content, cards }: { content: SiteContent | undefined; cards: CardRow[] }) {
+function AskQuestion({ locator }: { locator: string }) {
+  const ask = useServerFn(askQuestion);
+  const [open, setOpen] = useState(false);
+  const [body, setBody] = useState("");
+  const [pending, setPending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(true);
+          setSent(false);
+          setError(null);
+        }}
+        className="rounded-lg border border-border bg-secondary/60 px-5 py-2.5 text-sm text-foreground/85 transition hover:text-foreground"
+      >
+        Ask a question
+      </button>
+
+      {open ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 px-5 backdrop-blur-md">
+          <div className="glass-panel veil-in w-full max-w-md rounded-2xl p-7">
+            {sent ? (
+              <>
+                <p className="text-sm text-foreground/85">Your question is saved.</p>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="mt-6 w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:brightness-110"
+                >
+                  Close
+                </button>
+              </>
+            ) : (
+              <form
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  setPending(true);
+                  setError(null);
+                  try {
+                    await ask({ data: { locator, body } });
+                    setBody("");
+                    setSent(true);
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : "Could not send.");
+                  } finally {
+                    setPending(false);
+                  }
+                }}
+              >
+                <h2 className="text-xl font-light text-foreground">Ask a question</h2>
+                <textarea
+                  rows={5}
+                  value={body}
+                  onChange={(event) => setBody(event.target.value)}
+                  className="mt-5 w-full rounded-lg border border-border bg-input/40 px-3 py-2 text-sm outline-none focus:border-ring"
+                />
+                {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
+                <div className="mt-6 flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={pending || body.trim().length < 2}
+                    className="flex-1 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:brightness-110 disabled:opacity-50"
+                  >
+                    Ask
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="rounded-lg px-4 py-2.5 text-sm text-muted-foreground transition hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+
+function Content({
+  content,
+  cards,
+  locator,
+}: {
+  content: SiteContent | undefined;
+  cards: CardRow[];
+  locator: string;
+}) {
   return (
     <main className="swipe-in mx-auto max-w-3xl px-6 pb-24 pt-16 sm:pt-24">
       <h1 className="text-balance text-4xl font-light leading-tight text-foreground sm:text-5xl">
@@ -121,6 +233,9 @@ function Content({ content, cards }: { content: SiteContent | undefined; cards: 
           </article>
         ))}
       </div>
+
+      <div className="mt-12">{locator ? <AskQuestion locator={locator} /> : null}</div>
+
 
       <footer className="mt-24 border-t border-border/60 pt-8">
         {content?.footer_tagline ? (

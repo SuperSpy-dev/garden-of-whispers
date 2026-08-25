@@ -8,8 +8,12 @@ import {
   adminLogin,
   adminLogout,
   adminStatus,
+  deleteActivity,
   deletePromise,
+  deleteQuestions,
+  listActivity,
   listPromises,
+  listQuestions,
   saveCards,
   saveContent,
   type CardRow,
@@ -93,16 +97,19 @@ function Login({ onDone }: { onDone: () => void }) {
   );
 }
 
+const TABS = ["promises", "questions", "activity", "information"] as const;
+type Tab = (typeof TABS)[number];
+
 function Dashboard({ onSignOut }: { onSignOut: () => void }) {
-  const [tab, setTab] = useState<"promises" | "information">("promises");
+  const [tab, setTab] = useState<Tab>("promises");
   const logout = useServerFn(adminLogout);
 
   return (
     <Shell>
       <div className="mx-auto w-full max-w-3xl">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex gap-2">
-            {(["promises", "information"] as const).map((value) => (
+          <div className="flex flex-wrap gap-2">
+            {TABS.map((value) => (
               <button
                 key={value}
                 onClick={() => setTab(value)}
@@ -127,11 +134,176 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           </button>
         </div>
 
-        <div className="mt-8">{tab === "promises" ? <PromisesTab /> : <InformationTab />}</div>
+        <div className="mt-8">
+          {tab === "promises" ? <PromisesTab /> : null}
+          {tab === "questions" ? <QuestionsTab /> : null}
+          {tab === "activity" ? <ActivityTab /> : null}
+          {tab === "information" ? <InformationTab /> : null}
+        </div>
       </div>
     </Shell>
   );
 }
+
+function useSelection() {
+  const [selected, setSelected] = useState<string[]>([]);
+  function toggle(id: string) {
+    setSelected((current) =>
+      current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
+    );
+  }
+  return { selected, setSelected, toggle };
+}
+
+function stamp(value: string) {
+  return new Date(value).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function BulkBar({
+  count,
+  total,
+  onSelectAll,
+  onClear,
+  onDelete,
+}: {
+  count: number;
+  total: number;
+  onSelectAll: () => void;
+  onClear: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+      <span>
+        Selected <span className="text-foreground">{count}</span> of {total}
+      </span>
+      <button onClick={onSelectAll} className="transition hover:text-foreground">
+        Select all
+      </button>
+      <button onClick={onClear} className="transition hover:text-foreground">
+        Clear
+      </button>
+      <button
+        onClick={onDelete}
+        disabled={count === 0}
+        className="text-destructive transition hover:brightness-125 disabled:opacity-40"
+      >
+        Delete selected
+      </button>
+    </div>
+  );
+}
+
+function QuestionsTab() {
+  const list = useServerFn(listQuestions);
+  const remove = useServerFn(deleteQuestions);
+  const queryClient = useQueryClient();
+  const questions = useQuery({ queryKey: ["questions"], queryFn: () => list() });
+  const rows = questions.data?.questions ?? [];
+  const { selected, setSelected, toggle } = useSelection();
+
+  return (
+    <div className="glass-panel veil-in space-y-5 rounded-2xl p-6">
+      <BulkBar
+        count={selected.length}
+        total={rows.length}
+        onSelectAll={() => setSelected(rows.map((row) => row.id))}
+        onClear={() => setSelected([])}
+        onDelete={async () => {
+          await remove({ data: { ids: selected } });
+          setSelected([]);
+          await queryClient.invalidateQueries({ queryKey: ["questions"] });
+        }}
+      />
+      <div className="space-y-2">
+        {rows.map((row) => (
+          <label
+            key={row.id}
+            className="flex cursor-pointer gap-3 rounded-lg border border-border/60 px-4 py-3"
+          >
+            <input
+              type="checkbox"
+              checked={selected.includes(row.id)}
+              onChange={() => toggle(row.id)}
+              className="mt-1 accent-[var(--primary)]"
+            />
+            <div className="min-w-0">
+              <p className="whitespace-pre-wrap text-sm text-foreground/90">{row.body}</p>
+              <p className="mt-2 truncate font-mono text-[11px] text-muted-foreground">
+                {row.locator_key} · {stamp(row.created_at)}
+              </p>
+            </div>
+          </label>
+        ))}
+        {rows.length === 0 ? <p className="text-sm text-muted-foreground">No questions yet.</p> : null}
+      </div>
+    </div>
+  );
+}
+
+const EVENT_LABEL: Record<string, string> = {
+  page_open: "Opened main page",
+  promise_created: "Made a promise",
+  question_asked: "Asked a question",
+};
+
+function ActivityTab() {
+  const list = useServerFn(listActivity);
+  const remove = useServerFn(deleteActivity);
+  const queryClient = useQueryClient();
+  const activity = useQuery({ queryKey: ["activity"], queryFn: () => list() });
+  const rows = activity.data?.logs ?? [];
+  const { selected, setSelected, toggle } = useSelection();
+
+  return (
+    <div className="glass-panel veil-in space-y-5 rounded-2xl p-6">
+      <BulkBar
+        count={selected.length}
+        total={rows.length}
+        onSelectAll={() => setSelected(rows.map((row) => row.id))}
+        onClear={() => setSelected([])}
+        onDelete={async () => {
+          await remove({ data: { ids: selected } });
+          setSelected([]);
+          await queryClient.invalidateQueries({ queryKey: ["activity"] });
+        }}
+      />
+      <div className="space-y-2">
+        {rows.map((row) => (
+          <label
+            key={row.id}
+            className="flex cursor-pointer gap-3 rounded-lg border border-border/60 px-4 py-3"
+          >
+            <input
+              type="checkbox"
+              checked={selected.includes(row.id)}
+              onChange={() => toggle(row.id)}
+              className="mt-1 accent-[var(--primary)]"
+            />
+            <div className="min-w-0">
+              <p className="text-sm text-foreground/90">{EVENT_LABEL[row.event] ?? row.event}</p>
+              {row.detail ? (
+                <p className="mt-1 truncate text-xs text-muted-foreground">{row.detail}</p>
+              ) : null}
+              <p className="mt-2 truncate font-mono text-[11px] text-muted-foreground">
+                {row.locator_key ?? "unknown"} · {stamp(row.created_at)}
+              </p>
+            </div>
+          </label>
+        ))}
+        {rows.length === 0 ? <p className="text-sm text-muted-foreground">No activity yet.</p> : null}
+      </div>
+    </div>
+  );
+}
+
 
 function PromisesTab() {
   const list = useServerFn(listPromises);

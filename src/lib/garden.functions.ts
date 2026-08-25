@@ -37,6 +37,7 @@ export const makePromise = createServerFn({ method: "POST" })
     if (!/^[a-zA-Z0-9_-]{8,64}$/.test(locator)) throw new Error("Invalid locator");
     const db = await admin();
     await db.from("promises").upsert({ locator_key: locator }, { onConflict: "locator_key" });
+    await db.from("activity_logs").insert({ locator_key: locator, event: "promise_created" });
     return { promised: true };
   });
 
@@ -135,6 +136,102 @@ export const saveCards = createServerFn({ method: "POST" })
     const { error: delError } = await db.from("cards").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     if (delError) throw new Error(delError.message);
     const { error } = await db.from("cards").insert(rows);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export type QuestionRow = { id: string; locator_key: string; body: string; created_at: string };
+export type ActivityLogRow = {
+  id: string;
+  locator_key: string | null;
+  event: string;
+  detail: string | null;
+  created_at: string;
+};
+
+export const logActivity = createServerFn({ method: "POST" })
+  .inputValidator((data: { locator: string; event: string; detail?: string }) => data)
+  .handler(async ({ data }) => {
+    const { admin, clean } = await import("./garden.server");
+    const event = clean(data.event, 40);
+    const allowed = ["page_open", "promise_created", "question_asked"];
+    if (!allowed.includes(event)) return { ok: false as const };
+    const locator = clean(data.locator, 64) || null;
+    const db = await admin();
+    await db.from("activity_logs").insert({
+      locator_key: locator,
+      event,
+      detail: clean(data.detail ?? "", 300) || null,
+    });
+    return { ok: true as const };
+  });
+
+export const askQuestion = createServerFn({ method: "POST" })
+  .inputValidator((data: { locator: string; body: string }) => data)
+  .handler(async ({ data }) => {
+    const { admin, clean } = await import("./garden.server");
+    const locator = clean(data.locator, 64);
+    if (!/^[a-zA-Z0-9_-]{8,64}$/.test(locator)) throw new Error("Invalid locator");
+    const body = clean(data.body, 2000);
+    if (body.length < 2) throw new Error("Please write your question");
+    const db = await admin();
+    const { error } = await db.from("questions").insert({ locator_key: locator, body });
+    if (error) throw new Error(error.message);
+    await db.from("activity_logs").insert({
+      locator_key: locator,
+      event: "question_asked",
+      detail: body.slice(0, 140),
+    });
+    return { ok: true as const };
+  });
+
+export const listQuestions = createServerFn({ method: "POST" }).handler(async () => {
+  const { requireAdmin, admin } = await import("./garden.server");
+  await requireAdmin();
+  const db = await admin();
+  const { data, error } = await db
+    .from("questions")
+    .select("id, locator_key, body, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return { questions: (data ?? []) as QuestionRow[] };
+});
+
+export const deleteQuestions = createServerFn({ method: "POST" })
+  .inputValidator((data: { ids: string[] }) => data)
+  .handler(async ({ data }) => {
+    const { requireAdmin, admin } = await import("./garden.server");
+    await requireAdmin();
+    const ids = (data.ids ?? []).filter((id) => typeof id === "string").slice(0, 500);
+    if (ids.length === 0) return { ok: true as const };
+    const db = await admin();
+    const { error } = await db.from("questions").delete().in("id", ids);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const listActivity = createServerFn({ method: "POST" }).handler(async () => {
+  const { requireAdmin, admin } = await import("./garden.server");
+  await requireAdmin();
+  const db = await admin();
+  const { data, error } = await db
+    .from("activity_logs")
+    .select("id, locator_key, event, detail, created_at")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) throw new Error(error.message);
+  return { logs: (data ?? []) as ActivityLogRow[] };
+});
+
+export const deleteActivity = createServerFn({ method: "POST" })
+  .inputValidator((data: { ids: string[] }) => data)
+  .handler(async ({ data }) => {
+    const { requireAdmin, admin } = await import("./garden.server");
+    await requireAdmin();
+    const ids = (data.ids ?? []).filter((id) => typeof id === "string").slice(0, 1000);
+    if (ids.length === 0) return { ok: true as const };
+    const db = await admin();
+    const { error } = await db.from("activity_logs").delete().in("id", ids);
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
