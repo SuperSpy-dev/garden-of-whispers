@@ -4,7 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { checkPromise, makePromise, type CardRow, type SiteContent } from "@/lib/garden.functions";
+import {
+  askQuestion,
+  checkPromise,
+  logActivity,
+  makePromise,
+  type CardRow,
+  type SiteContent,
+} from "@/lib/garden.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
