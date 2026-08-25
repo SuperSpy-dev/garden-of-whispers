@@ -37,6 +37,7 @@ export const makePromise = createServerFn({ method: "POST" })
     if (!/^[a-zA-Z0-9_-]{8,64}$/.test(locator)) throw new Error("Invalid locator");
     const db = await admin();
     await db.from("promises").upsert({ locator_key: locator }, { onConflict: "locator_key" });
+    await db.from("activity_logs").insert({ locator_key: locator, event: "promise_created" });
     return { promised: true };
   });
 
