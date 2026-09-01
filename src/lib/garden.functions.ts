@@ -152,7 +152,14 @@ export const saveCards = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-export type QuestionRow = { id: string; locator_key: string; body: string; created_at: string };
+export type QuestionRow = {
+  id: string;
+  locator_key: string;
+  body: string;
+  created_at: string;
+  answer: string | null;
+  answered_at: string | null;
+};
 export type ActivityLogRow = {
   id: string;
   locator_key: string | null;
