@@ -1,0 +1,1 @@
+REVOKE SELECT ON public.questions FROM anon, authenticated;

@@ -3,11 +3,17 @@ import { createServerFn } from "@tanstack/react-start";
 export type PromiseRow = { id: string; locator_key: string; created_at: string };
 export type CardRow = {
   id: string;
-  kind: "image" | "link" | "heading" | "paragraph";
-  value: string;
-  label: string | null;
+  heading: string | null;
+  body: string | null;
+  link_url: string | null;
+  link_label: string | null;
+  image_url: string | null;
+  image_alt: string | null;
   position: number;
+  created_at?: string;
 };
+export const CARD_FIELDS =
+  "id, heading, body, link_url, link_label, image_url, image_alt, position, created_at";
 export type SiteContent = {
   main_heading: string;
   footer_tagline: string;
@@ -110,25 +116,31 @@ export const saveContent = createServerFn({ method: "POST" })
   });
 
 export const saveCards = createServerFn({ method: "POST" })
-  .inputValidator((data: { cards: Array<Omit<CardRow, "id"> & { id?: string }> }) => data)
+  .inputValidator((data: { cards: Array<Partial<CardRow>> }) => data)
   .handler(async ({ data }) => {
-    const { requireAdmin, admin, clean, CARD_KINDS, isSafeUrl } = await import("./garden.server");
+    const { requireAdmin, admin, clean, isSafeUrl } = await import("./garden.server");
     await requireAdmin();
     const incoming = Array.isArray(data.cards) ? data.cards : [];
     if (incoming.length < 1 || incoming.length > 20) {
       throw new Error("Cards must be between 1 and 20");
     }
     const rows = incoming.map((card, index) => {
-      if (!CARD_KINDS.includes(card.kind)) throw new Error("Invalid card type");
-      const value = clean(card.value, card.kind === "paragraph" ? 4000 : 1000);
-      if (!value) throw new Error("Every card needs content");
-      if ((card.kind === "image" || card.kind === "link") && !isSafeUrl(value)) {
-        throw new Error("Image and link cards need a valid http(s) URL");
+      const heading = clean(card.heading ?? "", 300) || null;
+      const body = clean(card.body ?? "", 4000) || null;
+      const link_url = clean(card.link_url ?? "", 1000) || null;
+      const image_url = clean(card.image_url ?? "", 1000) || null;
+      if (!heading && !body && !link_url && !image_url) {
+        throw new Error("Every card needs at least one piece of content");
       }
+      if (link_url && !isSafeUrl(link_url)) throw new Error("Link needs a valid http(s) URL");
+      if (image_url && !isSafeUrl(image_url)) throw new Error("Image needs a valid http(s) URL");
       return {
-        kind: card.kind,
-        value,
-        label: clean(card.label ?? "", 200) || null,
+        heading,
+        body,
+        link_url,
+        link_label: clean(card.link_label ?? "", 200) || null,
+        image_url,
+        image_alt: clean(card.image_alt ?? "", 200) || null,
         position: index,
       };
     });
@@ -140,7 +152,14 @@ export const saveCards = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-export type QuestionRow = { id: string; locator_key: string; body: string; created_at: string };
+export type QuestionRow = {
+  id: string;
+  locator_key: string;
+  body: string;
+  created_at: string;
+  answer: string | null;
+  answered_at: string | null;
+};
 export type ActivityLogRow = {
   id: string;
   locator_key: string | null;
@@ -191,7 +210,7 @@ export const listQuestions = createServerFn({ method: "POST" }).handler(async ()
   const db = await admin();
   const { data, error } = await db
     .from("questions")
-    .select("id, locator_key, body, created_at")
+    .select("id, locator_key, body, created_at, answer, answered_at")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return { questions: (data ?? []) as QuestionRow[] };
@@ -234,4 +253,38 @@ export const deleteActivity = createServerFn({ method: "POST" })
     const { error } = await db.from("activity_logs").delete().in("id", ids);
     if (error) throw new Error(error.message);
     return { ok: true as const };
+  });
+
+export const answerQuestion = createServerFn({ method: "POST" })
+  .inputValidator((data: { id: string; answer: string }) => data)
+  .handler(async ({ data }) => {
+    const { requireAdmin, admin, clean } = await import("./garden.server");
+    await requireAdmin();
+    const answer = clean(data.answer, 4000);
+    const db = await admin();
+    const { error } = await db
+      .from("questions")
+      .update({
+        answer: answer || null,
+        answered_at: answer ? new Date().toISOString() : null,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const myQuestions = createServerFn({ method: "POST" })
+  .inputValidator((data: { locator: string }) => data)
+  .handler(async ({ data }) => {
+    const { admin, clean } = await import("./garden.server");
+    const locator = clean(data.locator, 64);
+    if (!/^[a-zA-Z0-9_-]{8,64}$/.test(locator)) return { questions: [] as QuestionRow[] };
+    const db = await admin();
+    const { data: rows } = await db
+      .from("questions")
+      .select("id, locator_key, body, created_at, answer, answered_at")
+      .eq("locator_key", locator)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    return { questions: (rows ?? []) as QuestionRow[] };
   });
