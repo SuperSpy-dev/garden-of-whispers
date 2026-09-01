@@ -254,3 +254,37 @@ export const deleteActivity = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+export const answerQuestion = createServerFn({ method: "POST" })
+  .inputValidator((data: { id: string; answer: string }) => data)
+  .handler(async ({ data }) => {
+    const { requireAdmin, admin, clean } = await import("./garden.server");
+    await requireAdmin();
+    const answer = clean(data.answer, 4000);
+    const db = await admin();
+    const { error } = await db
+      .from("questions")
+      .update({
+        answer: answer || null,
+        answered_at: answer ? new Date().toISOString() : null,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const myQuestions = createServerFn({ method: "POST" })
+  .inputValidator((data: { locator: string }) => data)
+  .handler(async ({ data }) => {
+    const { admin, clean } = await import("./garden.server");
+    const locator = clean(data.locator, 64);
+    if (!/^[a-zA-Z0-9_-]{8,64}$/.test(locator)) return { questions: [] as QuestionRow[] };
+    const db = await admin();
+    const { data: rows } = await db
+      .from("questions")
+      .select("id, locator_key, body, created_at, answer, answered_at")
+      .eq("locator_key", locator)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    return { questions: (rows ?? []) as QuestionRow[] };
+  });
