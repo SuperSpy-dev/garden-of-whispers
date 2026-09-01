@@ -3,11 +3,17 @@ import { createServerFn } from "@tanstack/react-start";
 export type PromiseRow = { id: string; locator_key: string; created_at: string };
 export type CardRow = {
   id: string;
-  kind: "image" | "link" | "heading" | "paragraph";
-  value: string;
-  label: string | null;
+  heading: string | null;
+  body: string | null;
+  link_url: string | null;
+  link_label: string | null;
+  image_url: string | null;
+  image_alt: string | null;
   position: number;
+  created_at?: string;
 };
+export const CARD_FIELDS =
+  "id, heading, body, link_url, link_label, image_url, image_alt, position, created_at";
 export type SiteContent = {
   main_heading: string;
   footer_tagline: string;
