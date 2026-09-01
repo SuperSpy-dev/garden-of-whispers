@@ -210,7 +210,7 @@ export const listQuestions = createServerFn({ method: "POST" }).handler(async ()
   const db = await admin();
   const { data, error } = await db
     .from("questions")
-    .select("id, locator_key, body, created_at")
+    .select("id, locator_key, body, created_at, answer, answered_at")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return { questions: (data ?? []) as QuestionRow[] };
