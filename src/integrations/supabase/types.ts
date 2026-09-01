@@ -40,28 +40,46 @@ export type Database = {
       }
       cards: {
         Row: {
+          body: string | null
           created_at: string
+          heading: string | null
           id: string
-          kind: string
+          image_alt: string | null
+          image_url: string | null
+          kind: string | null
           label: string | null
+          link_label: string | null
+          link_url: string | null
           position: number
-          value: string
+          value: string | null
         }
         Insert: {
+          body?: string | null
           created_at?: string
+          heading?: string | null
           id?: string
-          kind: string
+          image_alt?: string | null
+          image_url?: string | null
+          kind?: string | null
           label?: string | null
+          link_label?: string | null
+          link_url?: string | null
           position?: number
-          value: string
+          value?: string | null
         }
         Update: {
+          body?: string | null
           created_at?: string
+          heading?: string | null
           id?: string
-          kind?: string
+          image_alt?: string | null
+          image_url?: string | null
+          kind?: string | null
           label?: string | null
+          link_label?: string | null
+          link_url?: string | null
           position?: number
-          value?: string
+          value?: string | null
         }
         Relationships: []
       }
@@ -85,18 +103,24 @@ export type Database = {
       }
       questions: {
         Row: {
+          answer: string | null
+          answered_at: string | null
           body: string
           created_at: string
           id: string
           locator_key: string
         }
         Insert: {
+          answer?: string | null
+          answered_at?: string | null
           body: string
           created_at?: string
           id?: string
           locator_key: string
         }
         Update: {
+          answer?: string | null
+          answered_at?: string | null
           body?: string
           created_at?: string
           id?: string
