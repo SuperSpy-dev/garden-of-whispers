@@ -380,21 +380,21 @@ function AskQuestion({ locator }: { locator: string }) {
           setSent(false);
           setError(null);
         }}
-        className="rounded-lg border border-border bg-secondary/60 px-5 py-2.5 text-sm tracking-wide text-foreground/85 transition hover:border-primary/40 hover:text-foreground"
+        className="ask-trigger group rounded-lg border border-border bg-secondary/60 px-5 py-2.5 text-sm tracking-wide text-foreground/85 transition-all duration-300 hover:border-primary/40 hover:bg-secondary hover:text-foreground active:scale-[0.97]"
       >
         Ask a question
       </button>
 
       {open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 px-5 backdrop-blur-md">
-          <div className="glass-panel veil-in w-full max-w-md rounded-2xl p-7">
+          <div className="glass-panel veil-in flex min-h-screen max-h-screen w-full max-w-md flex-col justify-center overflow-y-auto rounded-none p-7 sm:rounded-2xl sm:p-9">
             {sent ? (
               <>
                 <p className="text-sm text-foreground/85">Your question is saved.</p>
                 <button
                   type="button"
                   onClick={close}
-                  className="mt-6 w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:brightness-110"
+                  className="ask-trigger mt-6 w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:brightness-110 active:scale-[0.97]"
                 >
                   Close
                 </button>
@@ -422,21 +422,21 @@ function AskQuestion({ locator }: { locator: string }) {
                   rows={5}
                   value={body}
                   onChange={(event) => setBody(event.target.value)}
-                  className="mt-5 w-full rounded-lg border border-border bg-input/40 px-3 py-2 text-sm outline-none focus:border-ring"
+                  className="mt-5 w-full rounded-lg border border-border bg-input/40 px-3 py-2 text-sm outline-none transition-colors duration-300 focus:border-ring"
                 />
                 {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
                 <div className="mt-6 flex gap-3">
                   <button
                     type="submit"
                     disabled={pending || body.trim().length < 2}
-                    className="flex-1 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:brightness-110 disabled:opacity-50"
+                    className="ask-trigger flex-1 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:brightness-110 active:scale-[0.97] active:bg-primary/80 disabled:opacity-50"
                   >
                     Ask
                   </button>
                   <button
                     type="button"
                     onClick={close}
-                    className="rounded-lg px-4 py-2.5 text-sm text-muted-foreground transition hover:text-foreground"
+                    className="ask-trigger rounded-lg px-4 py-2.5 text-sm text-muted-foreground transition-all duration-300 hover:text-foreground active:scale-[0.97]"
                   >
                     Cancel
                   </button>
