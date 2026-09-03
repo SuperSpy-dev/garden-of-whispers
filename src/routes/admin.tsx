@@ -423,12 +423,12 @@ function InformationTab() {
           .select("main_heading, footer_tagline, footer_paragraph")
           .eq("id", 1)
           .maybeSingle(),
-        supabase.from("cards").select("id, kind, value, label, position").order("position"),
+        supabase.from("cards").select(CARD_FIELDS).order("position"),
       ]);
       if (!active) return;
       if (contentResult.data) setContent(contentResult.data as SiteContent);
       setCards(
-        ((cardsResult.data ?? []) as CardRow[]).map((card) => ({
+        ((cardsResult.data ?? []) as unknown as CardRow[]).map((card) => ({
           ...card,
           key: card.id,
         })),
@@ -457,9 +457,12 @@ function InformationTab() {
       await persistCards({
         data: {
           cards: cards.map((card, index) => ({
-            kind: card.kind,
-            value: card.value,
-            label: card.label,
+            heading: card.heading,
+            body: card.body,
+            link_url: card.link_url,
+            link_label: card.link_label,
+            image_url: card.image_url,
+            image_alt: card.image_alt,
             position: index,
           })),
         },
