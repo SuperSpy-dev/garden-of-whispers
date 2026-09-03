@@ -380,7 +380,7 @@ function AskQuestion({ locator }: { locator: string }) {
           setSent(false);
           setError(null);
         }}
-        className="ask-trigger group rounded-lg border border-border bg-secondary/60 px-5 py-2.5 text-sm tracking-wide text-foreground/85 transition-all duration-300 hover:border-primary/40 hover:bg-secondary hover:text-foreground active:scale-[0.97]"
+        className="ask-trigger group rounded-lg border border-border bg-secondary/60 px-5 py-2.5 text-sm tracking-wide text-foreground/85 active:scale-[0.97] hover:bg-primary/15 hover:border-primary/50 hover:text-primary"
       >
         Ask a question
       </button>
