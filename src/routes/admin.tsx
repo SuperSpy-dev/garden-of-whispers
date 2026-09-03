@@ -8,6 +8,7 @@ import {
   adminLogin,
   adminLogout,
   adminStatus,
+  answerQuestion,
   deleteActivity,
   deletePromise,
   deleteQuestions,
@@ -16,7 +17,9 @@ import {
   listQuestions,
   saveCards,
   saveContent,
+  CARD_FIELDS,
   type CardRow,
+  type QuestionRow,
   type SiteContent,
 } from "@/lib/garden.functions";
 
@@ -36,9 +39,8 @@ export const Route = createFileRoute("/admin")({
   component: Admin,
 });
 
-type DraftCard = Omit<CardRow, "id"> & { id?: string; key: string };
+type DraftCard = Omit<CardRow, "id" | "created_at"> & { id?: string; key: string };
 
-const KINDS: CardRow["kind"][] = ["heading", "paragraph", "link", "image"];
 
 function Admin() {
   const status = useServerFn(adminStatus);
@@ -224,25 +226,79 @@ function QuestionsTab() {
       />
       <div className="space-y-2">
         {rows.map((row) => (
-          <label
+          <QuestionRowItem
             key={row.id}
-            className="flex cursor-pointer gap-3 rounded-lg border border-border/60 px-4 py-3"
-          >
-            <input
-              type="checkbox"
-              checked={selected.includes(row.id)}
-              onChange={() => toggle(row.id)}
-              className="mt-1 accent-[var(--primary)]"
-            />
-            <div className="min-w-0">
-              <p className="whitespace-pre-wrap text-sm text-foreground/90">{row.body}</p>
-              <p className="mt-2 truncate font-mono text-[11px] text-muted-foreground">
-                {row.locator_key} · {stamp(row.created_at)}
-              </p>
-            </div>
-          </label>
+            row={row}
+            checked={selected.includes(row.id)}
+            onToggle={() => toggle(row.id)}
+          />
         ))}
         {rows.length === 0 ? <p className="text-sm text-muted-foreground">No questions yet.</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function QuestionRowItem({
+  row,
+  checked,
+  onToggle,
+}: {
+  row: QuestionRow;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  const reply = useServerFn(answerQuestion);
+  const queryClient = useQueryClient();
+  const [answer, setAnswer] = useState(row.answer ?? "");
+  const [pending, setPending] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  return (
+    <div className="rounded-lg border border-border/60 px-4 py-3">
+      <div className="flex gap-3">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggle}
+          className="mt-1 accent-[var(--primary)]"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm whitespace-pre-wrap text-foreground/90">{row.body}</p>
+          <p className="mt-2 truncate font-mono text-[11px] text-muted-foreground">
+            {row.locator_key} · {stamp(row.created_at)}
+            {row.answered_at ? ` · replied ${stamp(row.answered_at)}` : ""}
+          </p>
+          <textarea
+            rows={3}
+            value={answer}
+            placeholder="Write a reply…"
+            onChange={(event) => {
+              setAnswer(event.target.value);
+              setSaved(false);
+            }}
+            className="mt-3 w-full rounded-lg border border-border bg-input/40 px-3 py-2 text-sm outline-none focus:border-ring"
+          />
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              disabled={pending}
+              onClick={async () => {
+                setPending(true);
+                try {
+                  await reply({ data: { id: row.id, answer } });
+                  setSaved(true);
+                  await queryClient.invalidateQueries({ queryKey: ["questions"] });
+                } finally {
+                  setPending(false);
+                }
+              }}
+              className="rounded-full bg-primary px-4 py-1 text-xs font-medium text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
+            >
+              Save reply
+            </button>
+            {saved ? <span className="text-[11px] text-muted-foreground">Saved.</span> : null}
+          </div>
+        </div>
       </div>
     </div>
   );
