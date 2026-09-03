@@ -8,6 +8,7 @@ import {
   adminLogin,
   adminLogout,
   adminStatus,
+  answerQuestion,
   deleteActivity,
   deletePromise,
   deleteQuestions,
@@ -16,7 +17,9 @@ import {
   listQuestions,
   saveCards,
   saveContent,
+  CARD_FIELDS,
   type CardRow,
+  type QuestionRow,
   type SiteContent,
 } from "@/lib/garden.functions";
 
@@ -36,9 +39,8 @@ export const Route = createFileRoute("/admin")({
   component: Admin,
 });
 
-type DraftCard = Omit<CardRow, "id"> & { id?: string; key: string };
+type DraftCard = Omit<CardRow, "id" | "created_at"> & { id?: string; key: string };
 
-const KINDS: CardRow["kind"][] = ["heading", "paragraph", "link", "image"];
 
 function Admin() {
   const status = useServerFn(adminStatus);
@@ -76,7 +78,7 @@ function Login({ onDone }: { onDone: () => void }) {
         }}
         className="glass-panel veil-in mx-auto mt-16 w-full max-w-sm rounded-2xl p-8"
       >
-        <h1 className="text-xl font-light">Enter passcode</h1>
+        <h1 className="text-xl font-semibold">Enter passcode</h1>
         <input
           type="password"
           autoComplete="current-password"
@@ -224,25 +226,79 @@ function QuestionsTab() {
       />
       <div className="space-y-2">
         {rows.map((row) => (
-          <label
+          <QuestionRowItem
             key={row.id}
-            className="flex cursor-pointer gap-3 rounded-lg border border-border/60 px-4 py-3"
-          >
-            <input
-              type="checkbox"
-              checked={selected.includes(row.id)}
-              onChange={() => toggle(row.id)}
-              className="mt-1 accent-[var(--primary)]"
-            />
-            <div className="min-w-0">
-              <p className="whitespace-pre-wrap text-sm text-foreground/90">{row.body}</p>
-              <p className="mt-2 truncate font-mono text-[11px] text-muted-foreground">
-                {row.locator_key} · {stamp(row.created_at)}
-              </p>
-            </div>
-          </label>
+            row={row}
+            checked={selected.includes(row.id)}
+            onToggle={() => toggle(row.id)}
+          />
         ))}
         {rows.length === 0 ? <p className="text-sm text-muted-foreground">No questions yet.</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function QuestionRowItem({
+  row,
+  checked,
+  onToggle,
+}: {
+  row: QuestionRow;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  const reply = useServerFn(answerQuestion);
+  const queryClient = useQueryClient();
+  const [answer, setAnswer] = useState(row.answer ?? "");
+  const [pending, setPending] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  return (
+    <div className="rounded-lg border border-border/60 px-4 py-3">
+      <div className="flex gap-3">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggle}
+          className="mt-1 accent-[var(--primary)]"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm whitespace-pre-wrap text-foreground/90">{row.body}</p>
+          <p className="mt-2 truncate font-mono text-[11px] text-muted-foreground">
+            {row.locator_key} · {stamp(row.created_at)}
+            {row.answered_at ? ` · replied ${stamp(row.answered_at)}` : ""}
+          </p>
+          <textarea
+            rows={3}
+            value={answer}
+            placeholder="Write a reply…"
+            onChange={(event) => {
+              setAnswer(event.target.value);
+              setSaved(false);
+            }}
+            className="mt-3 w-full rounded-lg border border-border bg-input/40 px-3 py-2 text-sm outline-none focus:border-ring"
+          />
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              disabled={pending}
+              onClick={async () => {
+                setPending(true);
+                try {
+                  await reply({ data: { id: row.id, answer } });
+                  setSaved(true);
+                  await queryClient.invalidateQueries({ queryKey: ["questions"] });
+                } finally {
+                  setPending(false);
+                }
+              }}
+              className="rounded-full bg-primary px-4 py-1 text-xs font-medium text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
+            >
+              Save reply
+            </button>
+            {saved ? <span className="text-[11px] text-muted-foreground">Saved.</span> : null}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -367,12 +423,12 @@ function InformationTab() {
           .select("main_heading, footer_tagline, footer_paragraph")
           .eq("id", 1)
           .maybeSingle(),
-        supabase.from("cards").select("id, kind, value, label, position").order("position"),
+        supabase.from("cards").select(CARD_FIELDS).order("position"),
       ]);
       if (!active) return;
       if (contentResult.data) setContent(contentResult.data as SiteContent);
       setCards(
-        ((cardsResult.data ?? []) as CardRow[]).map((card) => ({
+        ((cardsResult.data ?? []) as unknown as CardRow[]).map((card) => ({
           ...card,
           key: card.id,
         })),
@@ -401,9 +457,12 @@ function InformationTab() {
       await persistCards({
         data: {
           cards: cards.map((card, index) => ({
-            kind: card.kind,
-            value: card.value,
-            label: card.label,
+            heading: card.heading,
+            body: card.body,
+            link_url: card.link_url,
+            link_label: card.link_label,
+            image_url: card.image_url,
+            image_alt: card.image_alt,
             position: index,
           })),
         },
@@ -449,9 +508,12 @@ function InformationTab() {
                 ...current,
                 {
                   key: crypto.randomUUID(),
-                  kind: "paragraph",
-                  value: "",
-                  label: null,
+                  heading: "",
+                  body: "",
+                  link_url: null,
+                  link_label: null,
+                  image_url: null,
+                  image_alt: null,
                   position: current.length,
                 },
               ])
@@ -462,68 +524,72 @@ function InformationTab() {
           </button>
         </div>
 
-        {cards.map((card, index) => (
-          <div key={card.key} className="space-y-3 rounded-lg border border-border/60 p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={card.kind}
-                onChange={(event) =>
-                  setCards((current) =>
-                    current.map((item, i) =>
-                      i === index ? { ...item, kind: event.target.value as CardRow["kind"] } : item,
-                    ),
-                  )
-                }
-                className="rounded-md border border-border bg-input/40 px-2 py-1 text-xs"
-              >
-                {KINDS.map((kind) => (
-                  <option key={kind} value={kind}>
-                    {kind}
-                  </option>
-                ))}
-              </select>
-              <div className="ml-auto flex gap-2 text-xs text-muted-foreground">
-                <button onClick={() => move(index, -1)} className="hover:text-foreground">
-                  Up
-                </button>
-                <button onClick={() => move(index, 1)} className="hover:text-foreground">
-                  Down
-                </button>
-                <button
-                  onClick={() =>
-                    setCards((current) =>
-                      current.length > 1 ? current.filter((_, i) => i !== index) : current,
-                    )
-                  }
-                  className="text-destructive hover:brightness-125"
-                >
-                  Delete
-                </button>
+        {cards.map((card, index) => {
+          const set = (patch: Partial<DraftCard>) =>
+            setCards((current) =>
+              current.map((item, i) => (i === index ? { ...item, ...patch } : item)),
+            );
+          return (
+            <div key={card.key} className="space-y-3 rounded-lg border border-border/60 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
+                  Card {index + 1}
+                </span>
+                <div className="ml-auto flex gap-2 text-xs text-muted-foreground">
+                  <button onClick={() => move(index, -1)} className="hover:text-foreground">
+                    Up
+                  </button>
+                  <button onClick={() => move(index, 1)} className="hover:text-foreground">
+                    Down
+                  </button>
+                  <button
+                    onClick={() =>
+                      setCards((current) =>
+                        current.length > 1 ? current.filter((_, i) => i !== index) : current,
+                      )
+                    }
+                    className="text-destructive hover:brightness-125"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+              <Field
+                label="Heading"
+                value={card.heading ?? ""}
+                onChange={(value) => set({ heading: value })}
+              />
+              <Field
+                label="Paragraph"
+                textarea
+                value={card.body ?? ""}
+                onChange={(value) => set({ body: value })}
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field
+                  label="Link URL"
+                  value={card.link_url ?? ""}
+                  onChange={(value) => set({ link_url: value })}
+                />
+                <Field
+                  label="Link text"
+                  value={card.link_label ?? ""}
+                  onChange={(value) => set({ link_label: value })}
+                />
+                <Field
+                  label="Image URL"
+                  value={card.image_url ?? ""}
+                  onChange={(value) => set({ image_url: value })}
+                />
+                <Field
+                  label="Image alt"
+                  value={card.image_alt ?? ""}
+                  onChange={(value) => set({ image_alt: value })}
+                />
               </div>
             </div>
-            <Field
-              label={card.kind === "paragraph" ? "Content" : card.kind === "heading" ? "Text" : "URL"}
-              textarea={card.kind === "paragraph"}
-              value={card.value}
-              onChange={(value) =>
-                setCards((current) =>
-                  current.map((item, i) => (i === index ? { ...item, value } : item)),
-                )
-              }
-            />
-            {card.kind === "image" || card.kind === "link" ? (
-              <Field
-                label={card.kind === "image" ? "Alt text" : "Link text"}
-                value={card.label ?? ""}
-                onChange={(value) =>
-                  setCards((current) =>
-                    current.map((item, i) => (i === index ? { ...item, label: value } : item)),
-                  )
-                }
-              />
-            ) : null}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex items-center gap-4">
