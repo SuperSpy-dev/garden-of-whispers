@@ -394,7 +394,7 @@ function AskQuestion({ locator }: { locator: string }) {
                 <button
                   type="button"
                   onClick={close}
-                  className="ask-trigger mt-6 w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:brightness-110 active:scale-[0.97]"
+                  className="ask-trigger mt-6 w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground active:scale-[0.97] hover:bg-secondary hover:text-foreground"
                 >
                   Close
                 </button>
