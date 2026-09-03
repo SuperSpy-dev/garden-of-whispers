@@ -239,7 +239,7 @@ function Content({
       <p className="text-[11px] tracking-[0.34em] text-muted-foreground uppercase">
         {freshCount > 0 ? `${freshCount} new since your last visit` : "nothing new"}
       </p>
-      <h1 className="text-balance mt-5 text-4xl leading-tight font-light text-foreground sm:text-5xl">
+      <h1 className="text-balance mt-5 text-4xl leading-tight font-bold text-foreground sm:text-5xl">
         {content?.main_heading}
       </h1>
       <div className="gold-rule mt-8" />
@@ -261,7 +261,7 @@ function Content({
 
       <footer className="mt-24 border-t border-border/60 pt-8">
         {content?.footer_tagline ? (
-          <p className="font-display text-lg text-foreground/85">{content.footer_tagline}</p>
+          <p className="font-display text-lg font-semibold text-foreground/85">{content.footer_tagline}</p>
         ) : null}
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
           {content?.footer_paragraph}
@@ -304,7 +304,7 @@ function CardBlock({ card, index, isNew }: { card: CardRow; index: number; isNew
       ) : null}
 
       {card.heading ? (
-        <h2 className="text-2xl leading-snug font-light text-foreground">{card.heading}</h2>
+        <h2 className="text-2xl leading-snug font-semibold text-foreground">{card.heading}</h2>
       ) : null}
 
       {card.body ? (
@@ -417,7 +417,7 @@ function AskQuestion({ locator }: { locator: string }) {
                   }
                 }}
               >
-                <h2 className="text-xl font-light text-foreground">Ask a question</h2>
+                <h2 className="text-xl font-semibold text-foreground">Ask a question</h2>
                 <textarea
                   rows={5}
                   value={body}
@@ -468,7 +468,7 @@ function PromiseModal({ onPromise }: { onPromise: () => Promise<void> }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/88 px-5 backdrop-blur-md">
       <div className="glass-panel veil-in w-full max-w-md rounded-2xl p-7 sm:p-9">
-        <h2 className="text-balance shimmer-text text-2xl leading-snug font-light">
+        <h2 className="text-balance shimmer-text text-2xl leading-snug font-bold">
           Do you want to know about the apple of discord(s)?
         </h2>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground">

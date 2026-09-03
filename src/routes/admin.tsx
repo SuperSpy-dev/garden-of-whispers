@@ -78,7 +78,7 @@ function Login({ onDone }: { onDone: () => void }) {
         }}
         className="glass-panel veil-in mx-auto mt-16 w-full max-w-sm rounded-2xl p-8"
       >
-        <h1 className="text-xl font-light">Enter passcode</h1>
+        <h1 className="text-xl font-semibold">Enter passcode</h1>
         <input
           type="password"
           autoComplete="current-password"
