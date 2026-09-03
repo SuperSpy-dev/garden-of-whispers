@@ -380,7 +380,7 @@ function AskQuestion({ locator }: { locator: string }) {
           setSent(false);
           setError(null);
         }}
-        className="ask-trigger group rounded-lg border border-border bg-secondary/60 px-5 py-2.5 text-sm tracking-wide text-foreground/85 transition-all duration-300 hover:border-primary/40 hover:bg-secondary hover:text-foreground active:scale-[0.97]"
+        className="ask-trigger group rounded-lg border border-border bg-secondary/60 px-5 py-2.5 text-sm tracking-wide text-foreground/85 active:scale-[0.97] hover:bg-primary/15 hover:border-primary/50 hover:text-primary"
       >
         Ask a question
       </button>
@@ -394,7 +394,7 @@ function AskQuestion({ locator }: { locator: string }) {
                 <button
                   type="button"
                   onClick={close}
-                  className="ask-trigger mt-6 w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:brightness-110 active:scale-[0.97]"
+                  className="ask-trigger mt-6 w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground active:scale-[0.97] hover:bg-secondary hover:text-foreground"
                 >
                   Close
                 </button>
@@ -429,14 +429,14 @@ function AskQuestion({ locator }: { locator: string }) {
                   <button
                     type="submit"
                     disabled={pending || body.trim().length < 2}
-                    className="ask-trigger flex-1 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:brightness-110 active:scale-[0.97] active:bg-primary/80 disabled:opacity-50"
+                    className="ask-trigger flex-1 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground active:scale-[0.97] hover:bg-secondary hover:text-foreground disabled:hover:bg-primary disabled:hover:text-primary-foreground disabled:opacity-50"
                   >
                     Ask
                   </button>
                   <button
                     type="button"
                     onClick={close}
-                    className="ask-trigger rounded-lg px-4 py-2.5 text-sm text-muted-foreground transition-all duration-300 hover:text-foreground active:scale-[0.97]"
+                    className="ask-trigger rounded-lg px-4 py-2.5 text-sm text-muted-foreground active:scale-[0.97] hover:bg-primary/15 hover:text-primary hover:border-primary/50"
                   >
                     Cancel
                   </button>
