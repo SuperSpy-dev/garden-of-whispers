@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { ProfileCard } from "@/components/ProfileCard";
 import {
   askQuestion,
   checkPromise,
@@ -11,7 +12,9 @@ import {
   makePromise,
   myQuestions,
   CARD_FIELDS,
+  PROFILE_FIELDS,
   type CardRow,
+  type ProfileRow,
   type QuestionRow,
   type SiteContent,
 } from "@/lib/garden.functions";
@@ -48,13 +51,14 @@ function useSiteData() {
     queryKey: ["site-data"],
     refetchInterval: 30000,
     queryFn: async () => {
-      const [content, cards] = await Promise.all([
+      const [content, cards, profiles] = await Promise.all([
         supabase
           .from("site_content")
           .select("main_heading, footer_tagline, footer_paragraph")
           .eq("id", 1)
           .maybeSingle(),
         supabase.from("cards").select(CARD_FIELDS).order("position"),
+        supabase.from("profiles").select(PROFILE_FIELDS).order("position"),
       ]);
       return {
         content: (content.data ?? {
@@ -63,6 +67,12 @@ function useSiteData() {
           footer_paragraph: "",
         }) as SiteContent,
         cards: (cards.data ?? []) as unknown as CardRow[],
+        profiles: ((profiles.data ?? []) as unknown as ProfileRow[]).map((profile) => ({
+          ...profile,
+          list_items: Array.isArray(profile.list_items)
+            ? profile.list_items.map((item) => String(item))
+            : [],
+        })),
       };
     },
   });
@@ -153,7 +163,12 @@ function Main() {
 
       <div className={veiled ? "veiled" : "transition-[filter] duration-500"}>
         {promised ? (
-          <Content content={site.data?.content} cards={site.data?.cards ?? []} locator={locator} />
+          <Content
+            content={site.data?.content}
+            cards={site.data?.cards ?? []}
+            profiles={site.data?.profiles ?? []}
+            locator={locator}
+          />
         ) : (
           <div className="min-h-[60vh]" />
         )}
