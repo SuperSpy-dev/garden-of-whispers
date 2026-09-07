@@ -10,6 +10,7 @@ export type CardRow = {
   image_url: string | null;
   image_alt: string | null;
   position: number;
+  published?: boolean;
   created_at?: string;
 };
 export const CARD_FIELDS =
@@ -141,6 +142,7 @@ export const saveCards = createServerFn({ method: "POST" })
         link_label: clean(card.link_label ?? "", 200) || null,
         image_url,
         image_alt: clean(card.image_alt ?? "", 200) || null,
+        published: card.published !== false,
         position: index,
       };
     });
@@ -159,6 +161,7 @@ export type QuestionRow = {
   created_at: string;
   answer: string | null;
   answered_at: string | null;
+  answer_published?: boolean;
 };
 export type ActivityLogRow = {
   id: string;
@@ -210,7 +213,7 @@ export const listQuestions = createServerFn({ method: "POST" }).handler(async ()
   const db = await admin();
   const { data, error } = await db
     .from("questions")
-    .select("id, locator_key, body, created_at, answer, answered_at")
+    .select("id, locator_key, body, created_at, answer, answered_at, answer_published")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return { questions: (data ?? []) as QuestionRow[] };
@@ -282,11 +285,16 @@ export const myQuestions = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: rows } = await db
       .from("questions")
-      .select("id, locator_key, body, created_at, answer, answered_at")
+      .select("id, locator_key, body, created_at, answer, answered_at, answer_published")
       .eq("locator_key", locator)
       .order("created_at", { ascending: false })
       .limit(50);
-    return { questions: (rows ?? []) as QuestionRow[] };
+    const visible = ((rows ?? []) as unknown as QuestionRow[]).map((row) =>
+      row.answer_published
+        ? row
+        : { ...row, answer: null, answered_at: null, answer_published: false },
+    );
+    return { questions: visible };
   });
 
 // ===================== Profiles & publishing =====================
