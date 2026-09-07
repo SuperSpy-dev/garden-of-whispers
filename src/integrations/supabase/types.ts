@@ -51,6 +51,7 @@ export type Database = {
           link_label: string | null
           link_url: string | null
           position: number
+          published: boolean
           value: string | null
         }
         Insert: {
@@ -65,6 +66,7 @@ export type Database = {
           link_label?: string | null
           link_url?: string | null
           position?: number
+          published?: boolean
           value?: string | null
         }
         Update: {
@@ -79,7 +81,56 @@ export type Database = {
           link_label?: string | null
           link_url?: string | null
           position?: number
+          published?: boolean
           value?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_seed: string | null
+          avatar_style: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          list_items: Json
+          name: string
+          position: number
+          published: boolean
+          rank_title: string | null
+          subtitle: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_seed?: string | null
+          avatar_style?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          list_items?: Json
+          name?: string
+          position?: number
+          published?: boolean
+          rank_title?: string | null
+          subtitle?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_seed?: string | null
+          avatar_style?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          list_items?: Json
+          name?: string
+          position?: number
+          published?: boolean
+          rank_title?: string | null
+          subtitle?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -104,6 +155,7 @@ export type Database = {
       questions: {
         Row: {
           answer: string | null
+          answer_published: boolean
           answered_at: string | null
           body: string
           created_at: string
@@ -112,6 +164,7 @@ export type Database = {
         }
         Insert: {
           answer?: string | null
+          answer_published?: boolean
           answered_at?: string | null
           body: string
           created_at?: string
@@ -120,6 +173,7 @@ export type Database = {
         }
         Update: {
           answer?: string | null
+          answer_published?: boolean
           answered_at?: string | null
           body?: string
           created_at?: string

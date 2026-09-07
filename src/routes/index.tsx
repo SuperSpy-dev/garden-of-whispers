@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { ProfileCard } from "@/components/ProfileCard";
 import {
   askQuestion,
   checkPromise,
@@ -11,7 +12,9 @@ import {
   makePromise,
   myQuestions,
   CARD_FIELDS,
+  PROFILE_FIELDS,
   type CardRow,
+  type ProfileRow,
   type QuestionRow,
   type SiteContent,
 } from "@/lib/garden.functions";
@@ -48,13 +51,14 @@ function useSiteData() {
     queryKey: ["site-data"],
     refetchInterval: 30000,
     queryFn: async () => {
-      const [content, cards] = await Promise.all([
+      const [content, cards, profiles] = await Promise.all([
         supabase
           .from("site_content")
           .select("main_heading, footer_tagline, footer_paragraph")
           .eq("id", 1)
           .maybeSingle(),
         supabase.from("cards").select(CARD_FIELDS).order("position"),
+        supabase.from("profiles").select(PROFILE_FIELDS).order("position"),
       ]);
       return {
         content: (content.data ?? {
@@ -63,6 +67,12 @@ function useSiteData() {
           footer_paragraph: "",
         }) as SiteContent,
         cards: (cards.data ?? []) as unknown as CardRow[],
+        profiles: ((profiles.data ?? []) as unknown as ProfileRow[]).map((profile) => ({
+          ...profile,
+          list_items: Array.isArray(profile.list_items)
+            ? profile.list_items.map((item) => String(item))
+            : [],
+        })),
       };
     },
   });
@@ -153,7 +163,12 @@ function Main() {
 
       <div className={veiled ? "veiled" : "transition-[filter] duration-500"}>
         {promised ? (
-          <Content content={site.data?.content} cards={site.data?.cards ?? []} locator={locator} />
+          <Content
+            content={site.data?.content}
+            cards={site.data?.cards ?? []}
+            profiles={site.data?.profiles ?? []}
+            locator={locator}
+          />
         ) : (
           <div className="min-h-[60vh]" />
         )}
@@ -208,16 +223,26 @@ function ReadingProgress() {
   );
 }
 
+const MAIN_TABS = [
+  { id: "notifications", label: "Notifications" },
+  { id: "questions", label: "Questions & Answers" },
+  { id: "profiles", label: "Profiles" },
+] as const;
+type MainTab = (typeof MAIN_TABS)[number]["id"];
+
 function Content({
   content,
   cards,
+  profiles,
   locator,
 }: {
   content: SiteContent | undefined;
   cards: CardRow[];
+  profiles: ProfileRow[];
   locator: string;
 }) {
   const [lastSeen, setLastSeen] = useState<number | null>(null);
+  const [tab, setTab] = useState<MainTab>("notifications");
 
   useEffect(() => {
     const stored = Number(window.localStorage.getItem(LAST_SEEN_KEY) ?? 0);
@@ -235,7 +260,7 @@ function Content({
   }, [cards, lastSeen]);
 
   return (
-    <main className="swipe-in mx-auto max-w-3xl px-6 pt-16 pb-28 sm:pt-24">
+    <main className="swipe-in mx-auto max-w-3xl px-5 pt-14 pb-28 sm:px-6 sm:pt-24">
       <p className="text-[11px] tracking-[0.34em] text-muted-foreground uppercase">
         {freshCount > 0 ? `${freshCount} new since your last visit` : "nothing new"}
       </p>
@@ -244,20 +269,58 @@ function Content({
       </h1>
       <div className="gold-rule mt-8" />
 
-      <div className="mt-12 space-y-6">
-        {cards.map((card, index) => (
-          <CardBlock
-            key={card.id}
-            card={card}
-            index={index}
-            isNew={Boolean(lastSeen && card.created_at && Date.parse(card.created_at) > lastSeen)}
-          />
-        ))}
-      </div>
+      <nav className="mt-10 -mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+        <div className="flex w-max min-w-full gap-2 rounded-full border border-border/60 bg-secondary/30 p-1.5 backdrop-blur-md">
+          {MAIN_TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTab(item.id)}
+              className={`ask-trigger flex-1 rounded-full px-4 py-2 text-xs tracking-[0.16em] whitespace-nowrap uppercase ${
+                tab === item.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-primary"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </nav>
 
-      <div className="mt-14">{locator ? <AskQuestion locator={locator} /> : null}</div>
+      {tab === "notifications" ? (
+        <div key="notifications" className="veil-in mt-10 space-y-6">
+          {cards.map((card, index) => (
+            <CardBlock
+              key={card.id}
+              card={card}
+              index={index}
+              isNew={Boolean(lastSeen && card.created_at && Date.parse(card.created_at) > lastSeen)}
+            />
+          ))}
+          {cards.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nothing here yet.</p>
+          ) : null}
+        </div>
+      ) : null}
 
-      {locator ? <Thread locator={locator} /> : null}
+      {tab === "questions" ? (
+        <div key="questions" className="veil-in mt-10">
+          {locator ? <AskQuestion locator={locator} /> : null}
+          {locator ? <Thread locator={locator} /> : null}
+        </div>
+      ) : null}
+
+      {tab === "profiles" ? (
+        <div key="profiles" className="veil-in mt-10 grid gap-6 sm:grid-cols-1">
+          {profiles.map((profile) => (
+            <ProfileCard key={profile.id} profile={profile} />
+          ))}
+          {profiles.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No profiles yet.</p>
+          ) : null}
+        </div>
+      ) : null}
 
       <footer className="mt-24 border-t border-border/60 pt-8">
         {content?.footer_tagline ? (
