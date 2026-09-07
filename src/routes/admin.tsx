@@ -3,8 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 
-import { supabase } from "@/integrations/supabase/client";
 import {
+  adminCards,
   adminLogin,
   adminLogout,
   adminStatus,
@@ -15,13 +15,17 @@ import {
   listActivity,
   listPromises,
   listQuestions,
+  adminProfiles,
+  publishAnswer,
   saveCards,
+  saveProfiles,
   saveContent,
-  CARD_FIELDS,
   type CardRow,
+  type ProfileRow,
   type QuestionRow,
   type SiteContent,
 } from "@/lib/garden.functions";
+import { AVATAR_STYLES, avatarUrl } from "@/lib/avatar";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -99,7 +103,7 @@ function Login({ onDone }: { onDone: () => void }) {
   );
 }
 
-const TABS = ["promises", "questions", "activity", "information"] as const;
+const TABS = ["promises", "questions", "activity", "information", "profiles"] as const;
 type Tab = (typeof TABS)[number];
 
 function Dashboard({ onSignOut }: { onSignOut: () => void }) {
@@ -141,6 +145,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           {tab === "questions" ? <QuestionsTab /> : null}
           {tab === "activity" ? <ActivityTab /> : null}
           {tab === "information" ? <InformationTab /> : null}
+          {tab === "profiles" ? <ProfilesTab /> : null}
         </div>
       </div>
     </Shell>
@@ -405,6 +410,8 @@ function PromisesTab() {
 function InformationTab() {
   const persistContent = useServerFn(saveContent);
   const persistCards = useServerFn(saveCards);
+  const loadCards = useServerFn(adminCards);
+  const loadContent = useServerFn(loadSiteContent);
   const [content, setContent] = useState<SiteContent>({
     main_heading: "",
     footer_tagline: "",
@@ -417,18 +424,11 @@ function InformationTab() {
   useEffect(() => {
     let active = true;
     void (async () => {
-      const [contentResult, cardsResult] = await Promise.all([
-        supabase
-          .from("site_content")
-          .select("main_heading, footer_tagline, footer_paragraph")
-          .eq("id", 1)
-          .maybeSingle(),
-        supabase.from("cards").select(CARD_FIELDS).order("position"),
-      ]);
+      const [contentResult, cardsResult] = await Promise.all([loadContent(), loadCards()]);
       if (!active) return;
-      if (contentResult.data) setContent(contentResult.data as SiteContent);
+      if (contentResult.content) setContent(contentResult.content);
       setCards(
-        ((cardsResult.data ?? []) as unknown as CardRow[]).map((card) => ({
+        cardsResult.cards.map((card) => ({
           ...card,
           key: card.id,
         })),
@@ -437,7 +437,7 @@ function InformationTab() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadCards, loadContent]);
 
   function move(index: number, delta: number) {
     setCards((current) => {
@@ -463,6 +463,7 @@ function InformationTab() {
             link_label: card.link_label,
             image_url: card.image_url,
             image_alt: card.image_alt,
+            published: card.published !== false,
             position: index,
           })),
         },
@@ -514,6 +515,7 @@ function InformationTab() {
                   link_label: null,
                   image_url: null,
                   image_alt: null,
+                  published: true,
                   position: current.length,
                 },
               ])
@@ -535,7 +537,13 @@ function InformationTab() {
                 <span className="text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
                   Card {index + 1}
                 </span>
-                <div className="ml-auto flex gap-2 text-xs text-muted-foreground">
+                <div className="ml-auto flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <button
+                    onClick={() => set({ published: !(card.published !== false) })}
+                    className={card.published !== false ? "text-primary" : "hover:text-foreground"}
+                  >
+                    {card.published !== false ? "Published" : "Unpublished"}
+                  </button>
                   <button onClick={() => move(index, -1)} className="hover:text-foreground">
                     Up
                   </button>
