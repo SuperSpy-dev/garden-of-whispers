@@ -288,3 +288,101 @@ export const myQuestions = createServerFn({ method: "POST" })
       .limit(50);
     return { questions: (rows ?? []) as QuestionRow[] };
   });
+
+// ===================== Profiles & publishing =====================
+
+export type ProfileRow = {
+  id: string;
+  name: string;
+  subtitle: string | null;
+  image_url: string | null;
+  avatar_style: string;
+  avatar_seed: string | null;
+  rank_title: string | null;
+  description: string | null;
+  list_items: string[];
+  published: boolean;
+  position: number;
+};
+
+export const PROFILE_FIELDS =
+  "id, name, subtitle, image_url, avatar_style, avatar_seed, rank_title, description, list_items, published, position";
+
+/** Admin view of cards (includes unpublished ones). */
+export const adminCards = createServerFn({ method: "POST" }).handler(async () => {
+  const { requireAdmin, admin } = await import("./garden.server");
+  await requireAdmin();
+  const db = await admin();
+  const { data, error } = await db
+    .from("cards")
+    .select(`${CARD_FIELDS}, published`)
+    .order("position");
+  if (error) throw new Error(error.message);
+  return { cards: (data ?? []) as unknown as Array<CardRow & { published: boolean }> };
+});
+
+export const adminProfiles = createServerFn({ method: "POST" }).handler(async () => {
+  const { requireAdmin, admin } = await import("./garden.server");
+  await requireAdmin();
+  const db = await admin();
+  const { data, error } = await db.from("profiles").select(PROFILE_FIELDS).order("position");
+  if (error) throw new Error(error.message);
+  return { profiles: (data ?? []) as unknown as ProfileRow[] };
+});
+
+export const saveProfiles = createServerFn({ method: "POST" })
+  .inputValidator((data: { profiles: Array<Partial<ProfileRow>> }) => data)
+  .handler(async ({ data }) => {
+    const { requireAdmin, admin, clean, isSafeUrl } = await import("./garden.server");
+    await requireAdmin();
+    const incoming = Array.isArray(data.profiles) ? data.profiles : [];
+    if (incoming.length > 50) throw new Error("Too many profiles");
+    const rows = incoming.map((profile, index) => {
+      const name = clean(profile.name ?? "", 120);
+      if (!name) throw new Error("Every profile needs a name");
+      const image_url = clean(profile.image_url ?? "", 1000) || null;
+      if (image_url && !isSafeUrl(image_url)) throw new Error("Profile image needs a valid http(s) URL");
+      const style = profile.avatar_style === "notionists" ? "notionists" : "lorelei";
+      const items = (Array.isArray(profile.list_items) ? profile.list_items : [])
+        .map((item) => clean(item, 300))
+        .filter(Boolean)
+        .slice(0, 30);
+      return {
+        name,
+        subtitle: clean(profile.subtitle ?? "", 200) || null,
+        image_url,
+        avatar_style: style,
+        avatar_seed: clean(profile.avatar_seed ?? "", 120) || null,
+        rank_title: clean(profile.rank_title ?? "", 120) || null,
+        description: clean(profile.description ?? "", 4000) || null,
+        list_items: items,
+        published: profile.published === true,
+        position: index,
+      };
+    });
+    const db = await admin();
+    const { error: delError } = await db
+      .from("profiles")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+    if (delError) throw new Error(delError.message);
+    if (rows.length > 0) {
+      const { error } = await db.from("profiles").insert(rows);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true as const };
+  });
+
+export const publishAnswer = createServerFn({ method: "POST" })
+  .inputValidator((data: { id: string; published: boolean }) => data)
+  .handler(async ({ data }) => {
+    const { requireAdmin, admin } = await import("./garden.server");
+    await requireAdmin();
+    const db = await admin();
+    const { error } = await db
+      .from("questions")
+      .update({ answer_published: data.published === true })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
