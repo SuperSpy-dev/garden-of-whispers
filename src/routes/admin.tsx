@@ -255,6 +255,7 @@ function QuestionRowItem({
   onToggle: () => void;
 }) {
   const reply = useServerFn(answerQuestion);
+  const publish = useServerFn(publishAnswer);
   const queryClient = useQueryClient();
   const [answer, setAnswer] = useState(row.answer ?? "");
   const [pending, setPending] = useState(false);
@@ -301,6 +302,25 @@ function QuestionRowItem({
               className="rounded-full bg-primary px-4 py-1 text-xs font-medium text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
             >
               Save reply
+            </button>
+            <button
+              disabled={pending || !row.answer}
+              onClick={async () => {
+                setPending(true);
+                try {
+                  await publish({ data: { id: row.id, published: !row.answer_published } });
+                  await queryClient.invalidateQueries({ queryKey: ["questions"] });
+                } finally {
+                  setPending(false);
+                }
+              }}
+              className={`rounded-full border px-4 py-1 text-xs transition disabled:opacity-40 ${
+                row.answer_published
+                  ? "border-primary/50 text-primary"
+                  : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {row.answer_published ? "Published" : "Publish reply"}
             </button>
             {saved ? <span className="text-[11px] text-muted-foreground">Saved.</span> : null}
           </div>
