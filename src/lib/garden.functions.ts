@@ -394,3 +394,17 @@ export const publishAnswer = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+/** Admin view of the site content row. */
+export const loadSiteContent = createServerFn({ method: "POST" }).handler(async () => {
+  const { requireAdmin, admin } = await import("./garden.server");
+  await requireAdmin();
+  const db = await admin();
+  const { data, error } = await db
+    .from("site_content")
+    .select("main_heading, footer_tagline, footer_paragraph")
+    .eq("id", 1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return { content: (data ?? null) as SiteContent | null };
+});
