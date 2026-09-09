@@ -659,3 +659,269 @@ function Field({
     </label>
   );
 }
+
+type DraftProfile = Omit<ProfileRow, "id"> & { key: string };
+
+function emptyProfile(position: number): DraftProfile {
+  return {
+    key: crypto.randomUUID(),
+    name: "",
+    subtitle: null,
+    image_url: null,
+    avatar_style: "lorelei",
+    avatar_seed: null,
+    rank_title: null,
+    description: null,
+    list_items: [],
+    published: true,
+    position,
+  };
+}
+
+function ProfilesTab() {
+  const load = useServerFn(adminProfiles);
+  const persist = useServerFn(saveProfiles);
+  const [profiles, setProfiles] = useState<DraftProfile[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const result = await load();
+      if (!active) return;
+      setProfiles(
+        result.profiles.map((profile) => ({
+          ...profile,
+          key: profile.id,
+          list_items: Array.isArray(profile.list_items) ? profile.list_items : [],
+        })),
+      );
+    })();
+    return () => {
+      active = false;
+    };
+  }, [load]);
+
+  function update(index: number, patch: Partial<DraftProfile>) {
+    setProfiles((current) => current.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  }
+
+  function moveProfile(index: number, delta: number) {
+    setProfiles((current) => {
+      const next = [...current];
+      const target = index + delta;
+      if (target < 0 || target >= next.length) return current;
+      [next[index], next[target]] = [next[target]!, next[index]!];
+      return next;
+    });
+  }
+
+  function moveItem(index: number, itemIndex: number, delta: number) {
+    setProfiles((current) =>
+      current.map((profile, i) => {
+        if (i !== index) return profile;
+        const items = [...profile.list_items];
+        const target = itemIndex + delta;
+        if (target < 0 || target >= items.length) return profile;
+        [items[itemIndex], items[target]] = [items[target]!, items[itemIndex]!];
+        return { ...profile, list_items: items };
+      }),
+    );
+  }
+
+  async function save() {
+    setPending(true);
+    setMessage(null);
+    try {
+      await persist({
+        data: {
+          profiles: profiles.map((profile, index) => ({
+            name: profile.name,
+            subtitle: profile.subtitle,
+            image_url: profile.image_url,
+            avatar_style: profile.avatar_style,
+            avatar_seed: profile.avatar_seed,
+            rank_title: profile.rank_title,
+            description: profile.description,
+            list_items: profile.list_items,
+            published: profile.published,
+            position: index,
+          })),
+        },
+      });
+      setMessage("Saved.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not save.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="veil-in space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
+          Profiles ({profiles.length})
+        </p>
+        <button
+          onClick={() => setProfiles((current) => [...current, emptyProfile(current.length)])}
+          className="rounded-full bg-secondary px-3 py-1 text-xs transition hover:text-foreground"
+        >
+          Add profile
+        </button>
+      </div>
+
+      {profiles.map((profile, index) => (
+        <div key={profile.key} className="glass-panel space-y-4 rounded-2xl p-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <img
+              src={
+                profile.image_url ||
+                avatarUrl({
+                  name: profile.name,
+                  seed: profile.avatar_seed,
+                  style: profile.avatar_style,
+                })
+              }
+              alt=""
+              className="h-14 w-14 rounded-full border border-border/60 bg-secondary/50 object-cover"
+            />
+            <span className="text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
+              Profile {index + 1}
+            </span>
+            <div className="ml-auto flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <button
+                onClick={() => update(index, { published: !profile.published })}
+                className={profile.published ? "text-primary" : "hover:text-foreground"}
+              >
+                {profile.published ? "Published" : "Unpublished"}
+              </button>
+              <button onClick={() => moveProfile(index, -1)} className="hover:text-foreground">
+                Up
+              </button>
+              <button onClick={() => moveProfile(index, 1)} className="hover:text-foreground">
+                Down
+              </button>
+              <button
+                onClick={() => setProfiles((current) => current.filter((_, i) => i !== index))}
+                className="text-destructive hover:brightness-125"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label="Profile holder name"
+              value={profile.name}
+              onChange={(value) => update(index, { name: value })}
+            />
+            <Field
+              label="Subtitle"
+              value={profile.subtitle ?? ""}
+              onChange={(value) => update(index, { subtitle: value })}
+            />
+            <Field
+              label="Rank / courtesy title"
+              value={profile.rank_title ?? ""}
+              onChange={(value) => update(index, { rank_title: value })}
+            />
+            <Field
+              label="Profile image URL (optional)"
+              value={profile.image_url ?? ""}
+              onChange={(value) => update(index, { image_url: value })}
+            />
+            <Field
+              label="Avatar seed (e.g. John Doe 2)"
+              value={profile.avatar_seed ?? ""}
+              onChange={(value) => update(index, { avatar_seed: value })}
+            />
+            <label className="block">
+              <span className="text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
+                Avatar style
+              </span>
+              <select
+                value={profile.avatar_style}
+                onChange={(event) => update(index, { avatar_style: event.target.value })}
+                className="mt-2 w-full rounded-lg border border-border bg-input/40 px-3 py-2 text-sm outline-none focus:border-ring"
+              >
+                {AVATAR_STYLES.map((style) => (
+                  <option key={style} value={style}>
+                    {style}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <Field
+            label="Description"
+            textarea
+            value={profile.description ?? ""}
+            onChange={(value) => update(index, { description: value })}
+          />
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
+                List items ({profile.list_items.length})
+              </span>
+              <button
+                onClick={() => update(index, { list_items: [...profile.list_items, ""] })}
+                className="rounded-full bg-secondary px-3 py-1 text-xs transition hover:text-foreground"
+              >
+                Add item
+              </button>
+            </div>
+            {profile.list_items.map((item, itemIndex) => (
+              <div key={itemIndex} className="flex flex-wrap items-center gap-2">
+                <input
+                  value={item}
+                  onChange={(event) =>
+                    update(index, {
+                      list_items: profile.list_items.map((value, i) =>
+                        i === itemIndex ? event.target.value : value,
+                      ),
+                    })
+                  }
+                  className="min-w-0 flex-1 rounded-lg border border-border bg-input/40 px-3 py-2 text-sm outline-none focus:border-ring"
+                />
+                <div className="flex gap-2 text-xs text-muted-foreground">
+                  <button onClick={() => moveItem(index, itemIndex, -1)} className="hover:text-foreground">
+                    Up
+                  </button>
+                  <button onClick={() => moveItem(index, itemIndex, 1)} className="hover:text-foreground">
+                    Down
+                  </button>
+                  <button
+                    onClick={() =>
+                      update(index, {
+                        list_items: profile.list_items.filter((_, i) => i !== itemIndex),
+                      })
+                    }
+                    className="text-destructive hover:brightness-125"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <div className="flex items-center gap-4">
+        <button
+          onClick={save}
+          disabled={pending}
+          className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
+        >
+          Save profiles
+        </button>
+        {message ? <p className="text-xs text-muted-foreground">{message}</p> : null}
+      </div>
+    </div>
+  );
+}
