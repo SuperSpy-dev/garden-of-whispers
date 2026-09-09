@@ -866,11 +866,24 @@ function ProfilesTab() {
               value={profile.rank_title ?? ""}
               onChange={(value) => update(index, { rank_title: value })}
             />
-            <Field
-              label="Profile image URL (optional)"
-              value={profile.image_url ?? ""}
-              onChange={(value) => update(index, { image_url: value })}
-            />
+            <div>
+              <Field
+                label="Profile image URL (optional)"
+                value={profile.image_url ?? ""}
+                onChange={(value) => update(index, { image_url: value })}
+              />
+              {profile.image_url?.trim() ? (
+                <p
+                  className={`mt-1 text-[11px] ${
+                    isHttpUrl(profile.image_url) ? "text-primary" : "text-destructive"
+                  }`}
+                >
+                  {isHttpUrl(profile.image_url)
+                    ? "Valid image link — it will be used."
+                    : "Invalid link — enter a full http(s) URL or leave empty to use the avatar."}
+                </p>
+              ) : null}
+            </div>
             <Field
               label="Avatar seed (e.g. John Doe 2)"
               value={profile.avatar_seed ?? ""}
