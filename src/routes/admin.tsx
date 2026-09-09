@@ -26,7 +26,7 @@ import {
   type QuestionRow,
   type SiteContent,
 } from "@/lib/garden.functions";
-import { AVATAR_STYLES, avatarUrl } from "@/lib/avatar";
+import { AVATAR_STYLES, avatarUrl, bumpSeed, isHttpUrl } from "@/lib/avatar";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -774,22 +774,60 @@ function ProfilesTab() {
 
       {profiles.map((profile, index) => (
         <div key={profile.key} className="glass-panel space-y-4 rounded-2xl p-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <img
-              src={
-                profile.image_url ||
-                avatarUrl({
-                  name: profile.name,
-                  seed: profile.avatar_seed,
-                  style: profile.avatar_style,
-                })
-              }
-              alt=""
-              className="h-14 w-14 rounded-full border border-border/60 bg-secondary/50 object-cover"
-            />
-            <span className="text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
-              Profile {index + 1}
-            </span>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <img
+                  key={
+                    profile.image_url ||
+                    avatarUrl({
+                      name: profile.name,
+                      seed: profile.avatar_seed,
+                      style: profile.avatar_style,
+                    })
+                  }
+                  src={
+                    profile.image_url && isHttpUrl(profile.image_url)
+                      ? profile.image_url
+                      : avatarUrl({
+                          name: profile.name,
+                          seed: profile.avatar_seed,
+                          style: profile.avatar_style,
+                        })
+                  }
+                  alt=""
+                  className="veil-in h-16 w-16 rounded-full border border-primary/30 bg-secondary/50 object-cover shadow-lg transition-transform duration-300 hover:scale-105"
+                />
+                <button
+                  type="button"
+                  title="Next avatar variation"
+                  aria-label="Next avatar variation"
+                  onClick={() =>
+                    update(index, {
+                      image_url: null,
+                      avatar_seed: bumpSeed(
+                        profile.avatar_seed ?? profile.name ?? "avatar",
+                      ),
+                    })
+                  }
+                  className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full border border-primary/50 bg-background text-sm leading-none text-primary shadow-md transition duration-300 hover:scale-110 hover:bg-primary hover:text-primary-foreground active:scale-90"
+                >
+                  +
+                </button>
+              </div>
+              <div className="space-y-1">
+                <span className="block text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
+                  Profile {index + 1}
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {profile.image_url
+                    ? isHttpUrl(profile.image_url)
+                      ? "Custom image URL"
+                      : "Invalid image URL — showing avatar"
+                    : `DiceBear ${profile.avatar_style} avatar`}
+                </p>
+              </div>
+            </div>
             <div className="ml-auto flex flex-wrap gap-3 text-xs text-muted-foreground">
               <button
                 onClick={() => update(index, { published: !profile.published })}
