@@ -143,18 +143,18 @@ function Main() {
     <div className="relative min-h-screen">
       <ReadingProgress />
 
-      <header className="hairline sticky top-0 z-30 bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between gap-4 px-6">
+      <header className="hairline sticky top-0 z-30 bg-background/75 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-2xl items-center justify-between gap-4 px-6">
           <span className="w-8" />
-          <span className="font-display text-lg tracking-[0.34em] text-foreground/90 uppercase sm:text-xl">
-            Garden Of Secrets
+          <span className="font-display text-lg tracking-[0.22em] text-foreground/90 sm:text-xl">
+            Garden of Secrets
           </span>
           <button
             type="button"
             aria-label={veiled ? "Show page" : "Hide page"}
             title="Hide the page (Esc)"
             onClick={() => setVeiled((current) => !current)}
-            className="w-8 text-right text-xs tracking-[0.2em] text-muted-foreground uppercase transition hover:text-primary"
+            className="w-8 text-right text-xs tracking-[0.14em] text-muted-foreground transition-colors duration-300 hover:text-primary"
           >
             {veiled ? "show" : "hide"}
           </button>
@@ -260,26 +260,32 @@ function Content({
   }, [cards, lastSeen]);
 
   return (
-    <main className="swipe-in mx-auto max-w-3xl px-5 pt-14 pb-28 sm:px-6 sm:pt-24">
-      <p className="text-[11px] tracking-[0.34em] text-muted-foreground uppercase">
-        {freshCount > 0 ? `${freshCount} new since your last visit` : "nothing new"}
-      </p>
-      <h1 className="text-balance mt-5 text-4xl leading-tight font-bold text-foreground sm:text-5xl">
-        {content?.main_heading}
-      </h1>
-      <div className="gold-rule mt-8" />
+    <main className="swipe-in mx-auto max-w-2xl px-5 pt-16 pb-28 sm:px-6 sm:pt-28">
+      <div className="text-center">
+        <p className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-secondary/40 px-3.5 py-1 text-[11px] tracking-[0.14em] text-muted-foreground">
+          <span
+            aria-hidden
+            className={`h-1.5 w-1.5 rounded-full ${freshCount > 0 ? "bg-primary" : "bg-muted-foreground/50"}`}
+          />
+          {freshCount > 0 ? `${freshCount} new since your last visit` : "Nothing new right now"}
+        </p>
+        <h1 className="text-balance mx-auto mt-6 max-w-xl text-4xl leading-tight font-bold text-foreground sm:text-5xl">
+          {content?.main_heading}
+        </h1>
+        <div className="gold-rule mx-auto mt-9 w-40" />
+      </div>
 
-      <nav className="mt-10 -mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
-        <div className="flex w-max min-w-full gap-2 rounded-full border border-border/60 bg-secondary/30 p-1.5 backdrop-blur-md">
+      <nav className="mt-12 -mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+        <div className="mx-auto flex w-max gap-1 rounded-full border border-border/60 bg-secondary/30 p-1 backdrop-blur-md">
           {MAIN_TABS.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => setTab(item.id)}
-              className={`ask-trigger flex-1 rounded-full px-4 py-2 text-xs tracking-[0.16em] whitespace-nowrap uppercase ${
+              className={`ask-trigger rounded-full px-5 py-2 text-xs tracking-[0.08em] whitespace-nowrap ${
                 tab === item.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-primary"
+                  ? "bg-primary text-primary-foreground shadow-[0_8px_24px_-10px_var(--color-primary)]"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {item.label}
@@ -322,19 +328,19 @@ function Content({
         </div>
       ) : null}
 
-      <footer className="mt-24 border-t border-border/60 pt-8">
+      <footer className="mt-24 border-t border-border/50 pt-10 text-center">
         {content?.footer_tagline ? (
           <p className="font-display text-lg font-semibold text-foreground/85">{content.footer_tagline}</p>
         ) : null}
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
           {content?.footer_paragraph}
         </p>
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="mt-8 text-[11px] tracking-[0.28em] text-muted-foreground uppercase transition hover:text-primary"
+          className="mt-8 text-[11px] tracking-[0.2em] text-muted-foreground transition-colors duration-300 hover:text-primary"
         >
-          back to top
+          Back to top
         </button>
       </footer>
     </main>
@@ -348,7 +354,7 @@ function CardBlock({ card, index, isNew }: { card: CardRow; index: number; isNew
     <article
       ref={ref}
       data-visible={visible}
-      className="reveal glass-panel panel-lift rounded-xl p-6 sm:p-7"
+      className="reveal glass-panel panel-lift rounded-2xl p-6 sm:p-8"
       style={{ transitionDelay: `${Math.min(index, 8) * 60}ms` }}
     >
       {isNew ? (
@@ -402,15 +408,17 @@ function Thread({ locator }: { locator: string }) {
 
   return (
     <section className="mt-16">
-      <p className="text-[11px] tracking-[0.3em] text-muted-foreground uppercase">your thread</p>
-      <div className="mt-5 space-y-4">
+      <p className="text-center text-[11px] tracking-[0.2em] text-muted-foreground">
+        Your thread
+      </p>
+      <div className="mt-6 space-y-4">
         {rows.map((row) => (
-          <div key={row.id} className="glass-panel rounded-xl p-5">
+          <div key={row.id} className="glass-panel rounded-2xl p-6">
             <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/85">
               {row.body}
             </p>
             {row.answer ? (
-              <p className="mt-4 border-l border-primary/40 pl-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/70">
+              <p className="mt-4 border-l-2 border-primary/50 pl-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/70">
                 {row.answer}
               </p>
             ) : (
