@@ -457,19 +457,28 @@ function AskQuestion({ locator }: { locator: string }) {
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 px-5 backdrop-blur-md">
-          <div className="glass-panel veil-in flex min-h-screen max-h-screen w-full max-w-md flex-col justify-center overflow-y-auto rounded-none p-7 sm:rounded-2xl sm:p-9">
+        <div className="fixed inset-0 z-50 h-dvh w-screen overflow-y-auto bg-background">
+          <div className="veil-in mx-auto flex min-h-dvh w-full max-w-xl flex-col justify-center px-6 py-12 sm:px-10">
             {sent ? (
-              <>
-                <p className="text-sm text-foreground/85">Your question is saved.</p>
+              <div className="text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
+                  <span className="text-lg text-primary">✓</span>
+                </div>
+                <h2 className="mt-6 text-2xl font-bold tracking-[-0.01em] text-foreground">
+                  Question saved
+                </h2>
+                <p className="mt-3 text-sm leading-[1.8] text-muted-foreground/90">
+                  Your question is stored privately against your promise key. Check the Questions &
+                  Answers tab for a reply.
+                </p>
                 <button
                   type="button"
                   onClick={close}
-                  className="ask-trigger mt-6 w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground active:scale-[0.97] hover:bg-secondary hover:text-foreground"
+                  className="ask-trigger mt-9 w-full rounded-xl bg-primary px-5 py-3.5 text-sm font-semibold text-primary-foreground active:scale-[0.98] hover:bg-secondary hover:text-foreground"
                 >
                   Close
                 </button>
-              </>
+              </div>
             ) : (
               <form
                 onSubmit={async (event) => {
@@ -488,26 +497,36 @@ function AskQuestion({ locator }: { locator: string }) {
                   }
                 }}
               >
-                <h2 className="text-xl font-semibold text-foreground">Ask a question</h2>
+                <p className="text-center text-[0.7rem] tracking-[0.22em] text-muted-foreground/70 uppercase">
+                  private &amp; anonymous
+                </p>
+                <h2 className="mt-3 text-center text-2xl font-bold tracking-[-0.01em] text-foreground sm:text-[1.7rem]">
+                  Ask a question
+                </h2>
+                <p className="mt-3 text-center text-sm leading-[1.8] text-muted-foreground/90">
+                  Only the keeper of this garden can read it.
+                </p>
                 <textarea
-                  rows={5}
+                  rows={7}
                   value={body}
                   onChange={(event) => setBody(event.target.value)}
-                  className="mt-5 w-full rounded-lg border border-border bg-input/40 px-3 py-2 text-sm outline-none transition-colors duration-300 focus:border-ring"
+                  placeholder="Write your question here…"
+                  autoFocus
+                  className="mt-8 w-full resize-none rounded-2xl border border-border bg-input/40 px-4 py-3.5 text-[0.95rem] leading-[1.7] outline-none transition-colors duration-300 placeholder:text-muted-foreground/50 focus:border-ring"
                 />
                 {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
-                <div className="mt-6 flex gap-3">
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <button
                     type="submit"
                     disabled={pending || body.trim().length < 2}
-                    className="ask-trigger flex-1 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground active:scale-[0.97] hover:bg-secondary hover:text-foreground disabled:hover:bg-primary disabled:hover:text-primary-foreground disabled:opacity-50"
+                    className="ask-trigger flex-1 rounded-xl bg-primary px-5 py-3.5 text-sm font-semibold text-primary-foreground active:scale-[0.98] hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:hover:bg-primary disabled:hover:text-primary-foreground"
                   >
-                    Ask
+                    {pending ? "Sending…" : "Ask"}
                   </button>
                   <button
                     type="button"
                     onClick={close}
-                    className="ask-trigger rounded-lg px-4 py-2.5 text-sm text-muted-foreground active:scale-[0.97] hover:bg-primary/15 hover:text-primary hover:border-primary/50"
+                    className="ask-trigger rounded-xl border border-border px-5 py-3.5 text-sm text-muted-foreground active:scale-[0.98] hover:border-primary/50 hover:bg-primary/15 hover:text-primary"
                   >
                     Cancel
                   </button>
@@ -537,12 +556,12 @@ function PromiseModal({ onPromise }: { onPromise: () => Promise<void> }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/88 px-5 backdrop-blur-md">
-      <div className="glass-panel veil-in w-full max-w-md rounded-2xl p-7 sm:p-9">
-        <h2 className="text-balance shimmer-text text-2xl leading-snug font-bold">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/92 px-5 backdrop-blur-lg">
+      <div className="glass-panel veil-in w-full max-w-md rounded-3xl px-8 py-10 sm:px-11 sm:py-12">
+        <h2 className="text-balance shimmer-text text-[1.55rem] leading-[1.35] font-bold tracking-[-0.01em] sm:text-[1.7rem]">
           Do you want to know about the apple of discord(s)?
         </h2>
-        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-5 text-[0.95rem] leading-[1.85] text-muted-foreground/90">
           Please don't let anyone know about this web. I will provide more information about 9th if
           you do not tell anyone. so
         </p>
@@ -557,10 +576,15 @@ function PromiseModal({ onPromise }: { onPromise: () => Promise<void> }) {
               setPending(false);
             }
           }}
-          className="mt-8 w-full rounded-lg bg-primary px-5 py-3 text-sm font-medium tracking-wide text-primary-foreground transition-all duration-300 hover:brightness-110 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground"
+          className="ask-trigger mt-10 w-full rounded-xl bg-primary px-5 py-3.5 text-[0.95rem] font-semibold tracking-[0.02em] text-primary-foreground transition-all duration-500 hover:brightness-115 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground/70 disabled:shadow-none"
         >
           {label}
         </button>
+        {remaining > 0 ? (
+          <p className="mt-4 text-center text-[0.7rem] tracking-[0.14em] text-muted-foreground/60 uppercase">
+            read carefully before you promise
+          </p>
+        ) : null}
       </div>
     </div>
   );
