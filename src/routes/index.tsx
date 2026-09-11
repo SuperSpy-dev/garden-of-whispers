@@ -328,19 +328,19 @@ function Content({
         </div>
       ) : null}
 
-      <footer className="mt-24 border-t border-border/60 pt-8">
+      <footer className="mt-24 border-t border-border/50 pt-10 text-center">
         {content?.footer_tagline ? (
           <p className="font-display text-lg font-semibold text-foreground/85">{content.footer_tagline}</p>
         ) : null}
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
           {content?.footer_paragraph}
         </p>
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="mt-8 text-[11px] tracking-[0.28em] text-muted-foreground uppercase transition hover:text-primary"
+          className="mt-8 text-[11px] tracking-[0.2em] text-muted-foreground transition-colors duration-300 hover:text-primary"
         >
-          back to top
+          Back to top
         </button>
       </footer>
     </main>
@@ -354,7 +354,7 @@ function CardBlock({ card, index, isNew }: { card: CardRow; index: number; isNew
     <article
       ref={ref}
       data-visible={visible}
-      className="reveal glass-panel panel-lift rounded-xl p-6 sm:p-7"
+      className="reveal glass-panel panel-lift rounded-2xl p-6 sm:p-8"
       style={{ transitionDelay: `${Math.min(index, 8) * 60}ms` }}
     >
       {isNew ? (
@@ -408,15 +408,17 @@ function Thread({ locator }: { locator: string }) {
 
   return (
     <section className="mt-16">
-      <p className="text-[11px] tracking-[0.3em] text-muted-foreground uppercase">your thread</p>
-      <div className="mt-5 space-y-4">
+      <p className="text-center text-[11px] tracking-[0.2em] text-muted-foreground">
+        Your thread
+      </p>
+      <div className="mt-6 space-y-4">
         {rows.map((row) => (
-          <div key={row.id} className="glass-panel rounded-xl p-5">
+          <div key={row.id} className="glass-panel rounded-2xl p-6">
             <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/85">
               {row.body}
             </p>
             {row.answer ? (
-              <p className="mt-4 border-l border-primary/40 pl-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/70">
+              <p className="mt-4 border-l-2 border-primary/50 pl-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/70">
                 {row.answer}
               </p>
             ) : (
