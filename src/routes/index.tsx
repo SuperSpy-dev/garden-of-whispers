@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileCard } from "@/components/ProfileCard";
@@ -442,22 +443,18 @@ function AskQuestion({ locator }: { locator: string }) {
 
   const close = useCallback(() => setOpen(false), []);
 
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => {
-          setOpen(true);
-          setSent(false);
-          setError(null);
-        }}
-        className="ask-trigger group rounded-lg border border-border bg-secondary/60 px-5 py-2.5 text-sm tracking-wide text-foreground/85 active:scale-[0.97] hover:bg-primary/15 hover:border-primary/50 hover:text-primary"
-      >
-        Ask a question
-      </button>
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
-      {open ? (
-        <div className="fixed inset-0 z-50 flex w-screen flex-col items-center justify-center overflow-y-auto bg-background px-5 py-10 sm:px-6">
+  const dialog = open
+    ? createPortal(
+        <div className="fixed inset-0 z-[100] flex h-dvh w-screen items-center justify-center overflow-y-auto bg-background px-5 py-8 sm:px-6">
           <div className="veil-in mx-auto w-full max-w-xl px-4 sm:px-8">
             {sent ? (
               <div className="text-center">
@@ -468,7 +465,7 @@ function AskQuestion({ locator }: { locator: string }) {
                   Question saved
                 </h2>
                 <p className="mt-3 text-sm leading-[1.8] text-muted-foreground/90">
-                  Your question is stored privately against your promise key. Check the Questions &
+                  Your question is stored privately against your promise key. Check the Questions &amp;
                   Answers tab for a reply.
                 </p>
                 <button
@@ -534,8 +531,26 @@ function AskQuestion({ locator }: { locator: string }) {
               </form>
             )}
           </div>
-        </div>
-      ) : null}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(true);
+          setSent(false);
+          setError(null);
+        }}
+        className="ask-trigger group rounded-lg border border-border bg-secondary/60 px-5 py-2.5 text-sm tracking-wide text-foreground/85 active:scale-[0.97] hover:bg-primary/15 hover:border-primary/50 hover:text-primary"
+      >
+        Ask a question
+      </button>
+
+      {dialog}
     </>
   );
 }
