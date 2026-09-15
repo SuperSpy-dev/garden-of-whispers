@@ -275,7 +275,7 @@ function Content({
         <div className="gold-rule mx-auto mt-9 w-40" />
       </div>
 
-      <nav className="mt-12 -mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+      <nav className="gos-no-scrollbar mt-12 -mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
         <div className="mx-auto flex w-max gap-1 rounded-full border border-border/60 bg-secondary/30 p-1 backdrop-blur-md">
           {MAIN_TABS.map((item) => (
             <button
@@ -457,8 +457,8 @@ function AskQuestion({ locator }: { locator: string }) {
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 h-dvh w-screen overflow-y-auto bg-background">
-          <div className="veil-in mx-auto flex min-h-dvh w-full max-w-xl flex-col justify-center px-6 py-12 sm:px-10">
+        <div className="fixed inset-0 z-50 flex w-screen flex-col items-center justify-center overflow-y-auto bg-background px-5 py-10 sm:px-6">
+          <div className="veil-in mx-auto w-full max-w-xl px-4 sm:px-8">
             {sent ? (
               <div className="text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
