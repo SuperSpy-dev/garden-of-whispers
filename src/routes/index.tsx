@@ -266,9 +266,9 @@ function Content({
         <p className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-secondary/40 px-3.5 py-1 text-[11px] tracking-[0.14em] text-muted-foreground">
           <span
             aria-hidden
-            className={`h-1.5 w-1.5 rounded-full ${freshCount > 0 ? "bg-primary" : "bg-muted-foreground/50"}`}
+            className="h-1.5 w-1.5 rounded-full bg-primary"
           />
-          {freshCount > 0 ? `${freshCount} new since your last visit` : "Nothing new right now"}
+          Your Loyal Student
         </p>
         <h1 className="text-balance mx-auto mt-6 max-w-xl text-4xl leading-tight font-bold text-foreground sm:text-5xl">
           {content?.main_heading}
